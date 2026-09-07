@@ -1,0 +1,283 @@
+================================================================================
+RAILFLOW AI - SYSTEM ARCHITECTURE, CALCULATIONS, DATASETS & APIS
+Dynamic ETA Prediction & Railway Traffic Intelligence System (SIH 2026)
+================================================================================
+
+1. EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+RailFlow AI is an end-to-end intelligent railway traffic management system designed
+to provide dynamic, explainable train Arrival Time (ETA) predictions, real-time
+telemetry tracking, automated conflict detection, and section controller dispatch
+decision simulation ("What-If" engine).
+
+
+2. CALCULATIONS & MATHEMATICAL MODELS
+--------------------------------------------------------------------------------
+
+A. DYNAMIC ETA & DELAY PREDICTION (LightGBM REGRESSION)
+   File Reference: backend/models/eta_model.py
+
+   The system predicts train arrival delay using a 6-dimensional operational
+   feature vector:
+     X = [
+       current_delay,            (float, minutes)
+       preceding_train_headway,  (float, kilometers to train ahead)
+       visibility_meters,        (float, meters - weather condition/fog)
+       junction_congestion,      (float, 0.0 - 1.0 occupancy ratio)
+       train_priority,           (int, 1=Vande Bharat/Rajdhani, 2=Express, 3=Freight)
+       dwell_deviation           (float, platform halt deviation in minutes)
+     ]
+
+   Operational Physics & Penalty Formulations (Training Data Generation):
+   - Headway Penalty:
+       If headway < 6.0 km:
+         Headway_Penalty = (6.0 - headway) * 2.8 minutes
+       Else:
+         Headway_Penalty = 0.0
+
+   - Fog & Weather Visibility Penalty:
+       If visibility < 1500 meters:
+         Fog_Penalty = ((1500 - visibility) / 250.0) * 2.2 minutes
+       Else:
+         Fog_Penalty = 0.0
+
+   - Junction Congestion Penalty:
+       If junction_load > 0.65:
+         Junction_Penalty = (junction_load - 0.65) * 35.0 minutes
+       Else:
+         Junction_Penalty = 0.0
+
+   - Priority Penalty:
+       Priority_Penalty = (priority - 1) * 3.5 minutes
+
+   - Target Delay Generation:
+       Target_Delay = (0.85 * current_delay)
+                    + Headway_Penalty
+                    + Fog_Penalty
+                    + Junction_Penalty
+                    + Priority_Penalty
+                    + max(0, dwell_deviation)
+                    + Normal_Noise(mean=0, std=1.0)
+       Target_Delay = max(0, Target_Delay)
+
+   - Dynamic ETA Clock Time:
+       Dynamic_ETA = Scheduled_Arrival_Time + timedelta(minutes=predicted_delay)
+
+   - Expected Confidence Delay Band:
+       Min_Range = max(0, predicted_delay - 2)
+       Max_Range = predicted_delay + 4
+       Range_Band = "[Min_Range - Max_Range] mins"
+
+
+B. EXPLAINABLE AI FACTOR ATTRIBUTION (SHAP TreeExplainer)
+   File Reference: backend/models/eta_model.py (predict_delay_with_explanation)
+
+   The system applies cooperative game theory using SHAP (SHapley Additive
+   exPlanations) to decompose the black-box model output into localized, additive
+   feature contributions (phi_i):
+     Prediction(x) = Base_Value + SUM(phi_i)
+
+   Threshold Attribution Logic:
+   - Junction Congestion Attribution:
+       Triggered if junction_load > 0.60 (or > 0.40 with |phi_3| > 0.8)
+       Impact = max(1.5, |phi_3|) minutes
+   - Preceding Train Restriction Attribution:
+       Triggered if headway < 8.0 km
+       Impact = max(2.0, |phi_1|) minutes
+   - Fog / Visibility Restriction Attribution:
+       Triggered if visibility < 2000 m
+       Impact = max(2.0, |phi_2|) minutes (caps speed to 60 km/h)
+   - Extra Platform Dwell Attribution:
+       Triggered if dwell_deviation > 1.0 min
+       Impact = max(1.0, |phi_5|) minutes
+
+
+C. KINEMATIC & TELEMETRY GPS COORDINATE UPDATES
+   File Reference: backend/simulation/telemetry_engine.py
+
+   Every 2.5 seconds, the continuous simulation loop updates train coordinates:
+   - For trains approaching New Delhi (NDLS):
+       lat(t+1) = lat(t) + (28.6415 - lat(t)) * 0.008
+       lng(t+1) = lng(t) + (77.2194 - lng(t)) * 0.008
+   - For down-line trains:
+       lat(t+1) = lat(t) - 0.0012
+       lng(t+1) = lng(t) + 0.0015
+   - Relative Speed Differential:
+       Speed_Delta = |speed_lead - speed_following| km/h
+
+
+D. TOPOLOGY GRAPH & 4-ASPECT SIGNALING STATE MACHINE
+   File Reference: backend/simulation/track_network.py
+
+   - Railway network modeled as a directed graph G = (V, E) using NetworkX.
+   - Distance Shortest Path:
+       nx.shortest_path(G, source, destination, weight="distance_km")
+   - Automatic block spacing:
+       num_blocks = max(3, int(distance_km / 25))
+       block_spacing = (distance_km / num_blocks) * (i + 1)
+   - Indian Railways 4-Aspect Signaling Logic:
+       - Block occupied by train -> RED
+       - 1 block clear ahead     -> YELLOW (Caution: prepare to stop)
+       - 2 blocks clear ahead    -> DOUBLE YELLOW (Attention: intermediate speed)
+       - 3+ blocks clear ahead   -> GREEN (Proceed at Maximum Permissible Speed)
+
+
+E. CONFLICT DETECTION ALGORITHMS
+   File Reference: backend/services/conflict_detector.py
+
+   - Platform Conflict Detection:
+       Groups trains by (station_destination, assigned_platform).
+       Flags CRITICAL conflict if multiple trains arrive at the same platform
+       within a 10-14 minute safety buffer.
+   - Critical Headway Proximity Alerts:
+       Groups trains by current_section.
+       Flags HIGH severity alert if spacing < 20 km between lead and trailing train.
+
+
+F. SECTION CONTROLLER WHAT-IF SIMULATION ENGINE
+   File Reference: backend/services/what_if_engine.py
+
+   Calculates operational consequences of controller interventions prior to execution:
+   - Passenger-Minutes Saved:
+       Passenger_Minutes_Saved = Delay_Reduction_Min * Passengers_Affected
+       Example:
+         Moving 18-coach express from locked Platform 3 to open Platform 4:
+         Delay saved = 11.5 minutes
+         Passengers affected = 1,250
+         Passenger minutes saved = 11.5 * 1250 = 14,375 passenger-minutes
+   - Line Throughput Delta:
+       Calculates percentage throughput recovery (e.g., +7.8% to +12.4%).
+
+
+3. DATASETS USED
+--------------------------------------------------------------------------------
+
+All datasets are built-in, local, and modeled after authentic Indian Railways standards:
+
+1. SYNTHETIC SECTION PERFORMANCE TRAINING DATASET (backend/models/eta_model.py)
+   - 1,000 synthetic operational samples generated with NumPy (seed=42).
+   - Distributions:
+     * Delays: Exponential distribution (scale=12.0)
+     * Headways: Uniform distribution [1.0, 35.0] km
+     * Visibility: Categorical [8000m (60%), 4000m (20%), 1200m (10%), 400m (10%)]
+     * Junction Congestion: Uniform distribution [0.10, 0.95]
+     * Priority: Categorical [1: 25%, 2: 55%, 3: 20%]
+     * Dwell Deviation: Normal distribution (mean=1.5m, std=2.5m)
+
+2. CORRIDOR & STATION INFRASTRUCTURE DATASET (backend/data/railway_data.py)
+   Authentic coordinates, platform counts, divisions, and zones for 10 stations:
+   - NDLS : New Delhi (16 platforms, Delhi Division, Northern Railway)
+   - GZB  : Ghaziabad Jn (6 platforms, Delhi Division, Northern Railway)
+   - ALJN : Aligarh Jn (7 platforms, Prayagraj Division, North Central Railway)
+   - TDL  : Tundla Jn (5 platforms, Prayagraj Division, North Central Railway)
+   - CNB  : Kanpur Central (10 platforms, Prayagraj Division, North Central Railway)
+   - PRYJ : Prayagraj Jn (10 platforms, Prayagraj Division, North Central Railway)
+   - AGC  : Agra Cantt (6 platforms, Agra Division, North Central Railway)
+   - GWL  : Gwalior Jn (5 platforms, Jhansi Division, North Central Railway)
+   - VGLJ : Virangana Lakshmibai Jhansi (8 platforms, Jhansi Division, NCR)
+   - BPL  : Bhopal Jn (6 platforms, Bhopal Division, West Central Railway)
+
+3. FLEET TIMETABLE & ACTIVE RUNNING DATASET (backend/data/railway_data.py)
+   Real trains, priority classes, speeds, platforms, and stopping schedules:
+   - Train 12723: Andhra Pradesh Express (Superfast, Priority 2, Max 130 km/h)
+   - Train 22436: Vande Bharat Express (Semi High Speed, Priority 1, Max 160 km/h)
+   - Train 12302: Howrah Rajdhani Express (Rajdhani, Priority 1, Max 130 km/h)
+   - Train 12004: Lucknow Shatabdi Express (Shatabdi, Priority 1, Max 130 km/h)
+   - Train 12417: Prayagraj Express (Superfast, Priority 2, Max 130 km/h)
+   - Train F-809: Container Freight CONCOR-NCR (Heavy Freight, Priority 3, Max 75 km/h)
+
+4. MOCK PNR REGISTRY DATABASE (backend/data/railway_data.py)
+   Authentic 10-digit PNR mock records with coach, berth, booking status, and
+   passenger details, plus an automatic synthetic fallback for any 10-digit number.
+
+
+4. APIS USED
+--------------------------------------------------------------------------------
+
+A. INTERNAL FASTAPI REST ENDPOINTS (backend/api/routes.py)
+
+   Method  Endpoint                           Description
+   ------  ---------------------------------  ----------------------------------------------
+   GET     /api/health                        System health and online status verification
+   GET     /api/stations                      List of all corridor stations with coordinates
+   GET     /api/trains                        List of active trains with live dynamic ETAs
+   GET     /api/trains/search                 Filter trains by query, origin, or destination
+   GET     /api/trains/{train_no}             Single train telemetry details and stop list
+   GET     /api/pnr/{pnr_number}              PNR enquiry linked to live train delay & status
+   POST    /api/controller/what-if            Run dispatch intervention simulation
+   POST    /api/controller/reassign-platform  Execute platform reassignment in real-time
+   GET     /api/controller/conflicts          List active platform conflicts & proximity alerts
+   GET     /api/controller/metrics            System snapshot and 4-aspect signal block states
+   POST    /api/ai/predict-custom             Run standalone LightGBM + SHAP inference
+
+B. INTERNAL WEBSOCKET TELEMETRY STREAM
+   - URL: ws://localhost:8080/ws/telemetry
+   - Rate: Continuous broadcast every 2.5 seconds.
+   - Payload: Full JSON system snapshot containing updated train coordinates,
+     dynamic ETAs, delay breakdown, platform conflicts, proximity alerts, and
+     line utilization metrics.
+
+C. EXTERNAL THIRD-PARTY APIS & SERVICES
+   - CartoDB / OpenStreetMap Map Tiles:
+     URL: https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png
+     Used by Leaflet in frontend/src/components/map/RailMap.jsx to render geographic tracks.
+   - Google Fonts CDN:
+     URL: https://fonts.googleapis.com
+     Typography styles: JetBrains Mono (monospaced data) and Plus Jakarta Sans (UI).
+   * Note: No paid or external railway APIs (e.g., IRCTC, CRIS, NTES) are used.
+
+
+5. HOW THE DATA FLOWS (END-TO-END PIPELINE)
+--------------------------------------------------------------------------------
+
++-----------------------+     +------------------------+     +------------------------+
+|   railway_data.py     | --> |    track_network.py    | --> |      eta_model.py      |
+| (Stations, Timetable, |     | (NetworkX Graph,       |     | (LightGBM Train +      |
+|  PNR Registry)        |     |  4-Aspect Signaling)   |     |  SHAP TreeExplainer)   |
++-----------------------+     +------------------------+     +------------------------+
+                                                                          |
+                                                                          v
+                                                             +------------------------+
+                                                             |  telemetry_engine.py   |
+                                                             | (2.5s Background Loop) |
+                                                             | - Advances Coordinates |
+                                                             | - Re-evaluates ML/SHAP |
+                                                             | - Detects Conflicts    |
+                                                             +------------------------+
+                                                                     |        |
+                                            +------------------------+        +------------------------+
+                                            v                                                          v
+                            +--------------------------------+                         +--------------------------------+
+                            |     FastAPI REST API           |                         |   WebSocket: /ws/telemetry     |
+                            | (http://localhost:8080/api/*)  |                         | (ws://localhost:8080/...)      |
+                            +--------------------------------+                         +--------------------------------+
+                                            |                                                          |
+                                            +------------------------+        +------------------------+
+                                                                     v        v
+                                                       +------------------------------------+
+                                                       |     React Frontend (App.jsx)       |
+                                                       |  - Live Leaflet Track Map          |
+                                                       |  - Passenger Live Status View      |
+                                                       |  - Controller Decision Dashboard   |
+                                                       |  - PNR Tracking Modal              |
+                                                       +------------------------------------+
+
+1. STARTUP & BOOTSTRAP:
+   FastAPI triggers the lifespan handler, starting the continuous background loop
+   in TelemetryEngine via asyncio.create_task().
+
+2. SIMULATION TICK (Every 2.5 Seconds):
+   - Computes incremental GPS movements for active trains.
+   - Feeds real-time parameters into LightGBM and SHAP to calculate dynamic ETAs.
+   - Runs conflict detector to check for platform locking and headway violations.
+   - Updates track signal states in the NetworkX graph.
+
+3. BROADCAST:
+   The engine serializes the complete system snapshot and pushes it over the
+   active WebSocket connection to all subscribed frontend clients.
+
+4. USER INTERACTION:
+   The React application displays moving train markers and real-time alerts.
+   Section controllers can trigger "What-If" simulations and execute platform
+   reassignments via REST POST requests without interrupting the telemetry stream.
+================================================================================
