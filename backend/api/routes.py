@@ -90,22 +90,22 @@ def check_pnr(pnr_number: str):
     if len(clean_pnr) == 10 and clean_pnr.isdigit():
         return {
             "pnr": clean_pnr,
-            "train_no": "12723",
-            "train_name": "Andhra Pradesh Express",
+            "train_no": "07764",
+            "train_name": "Guntur - Vijayawada MEMU Passenger",
             "journey_date": "2026-09-08",
-            "from_station": "ALJN (Aligarh)",
-            "to_station": "NDLS (New Delhi)",
-            "booking_status": "RAC / Confirmed",
-            "coach": "B2",
-            "berth": "35",
-            "class_type": "3A (AC 3 Tier)",
+            "from_station": "GNT (Guntur Junction)",
+            "to_station": "BZA (Vijayawada Junction)",
+            "booking_status": "CNF (Confirmed)",
+            "coach": "GS1",
+            "berth": "24 (Window)",
+            "class_type": "2S (Second Sitting)",
             "chart_status": "Chart Prepared",
-            "live_eta": "06:44",
-            "delay_min": 14,
-            "platform_status": "LOCKED",
-            "assigned_platform": 3,
+            "live_eta": "07:51",
+            "delay_min": 6,
+            "platform_status": "CLEAR",
+            "assigned_platform": 1,
             "passengers": [
-                {"name": "Passenger 1", "age": 32, "gender": "M", "seat": "B2-35", "status": "CNF"}
+                {"name": "K. Ravi Teja", "age": 29, "gender": "M", "seat": "GS1-24", "status": "CNF"}
             ]
         }
 

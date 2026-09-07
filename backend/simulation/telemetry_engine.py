@@ -5,6 +5,7 @@ Simulates realistic GPS movement, speeds, dynamic ETA adjustments, and WebSocket
 
 import asyncio
 import copy
+from datetime import datetime, timedelta
 from typing import List, Dict, Set
 from fastapi import WebSocket
 from backend.data.railway_data import TRAINS, STATIONS
@@ -26,15 +27,16 @@ class TelemetryEngine:
 
     def _initialize_positions(self):
         """Initializes train starting positions along the corridor geometry."""
-        # Train coordinates initialization
-        # AP Express (12723): Approaching Ghaziabad from Aligarh
+        # Train coordinates initialization for Passenger & MEMU fleet
         self.train_coords = {
-            "12723": {"lat": 28.5200, "lng": 77.5800, "step": 0.0035, "target": "NDLS", "bearing": 330},
-            "22436": {"lat": 28.2500, "lng": 77.7500, "step": 0.0045, "target": "BSB", "bearing": 135},
-            "12302": {"lat": 27.5500, "lng": 78.1500, "step": 0.0040, "target": "HWH", "bearing": 140},
-            "12004": {"lat": 26.8500, "lng": 79.2500, "step": 0.0038, "target": "CNB", "bearing": 125},
-            "12417": {"lat": 28.4800, "lng": 77.6200, "step": 0.0032, "target": "NDLS", "bearing": 325},
-            "F-809": {"lat": 28.5600, "lng": 77.5300, "step": 0.0018, "target": "TKD", "bearing": 330},
+            "04414": {"lat": 28.1500, "lng": 77.8500, "step": 0.0025, "target": "ALJN", "bearing": 135},
+            "04183": {"lat": 28.4500, "lng": 77.6200, "step": 0.0028, "target": "NDLS", "bearing": 330},
+            "04159": {"lat": 26.8500, "lng": 79.2500, "step": 0.0022, "target": "TDL", "bearing": 305},
+            "01888": {"lat": 26.7000, "lng": 78.1000, "step": 0.0020, "target": "AGC", "bearing": 350},
+            "04419": {"lat": 28.6450, "lng": 77.3200, "step": 0.0026, "target": "NDLS", "bearing": 260},
+            "64521": {"lat": 28.6600, "lng": 77.3800, "step": 0.0027, "target": "NDLS", "bearing": 265},
+            "07764": {"lat": 16.4100, "lng": 80.5400, "step": 0.0022, "target": "BZA", "bearing": 55},
+            "07091": {"lat": 24.3500, "lng": 78.1200, "step": 0.0022, "target": "NDLS", "bearing": 25},
         }
         self.tick_count = 0
         self._update_all_ai_predictions()
@@ -49,9 +51,6 @@ class TelemetryEngine:
                 if not self.running:
                     break
                 t_no = train["train_no"]
-                # Freight trains (F-809) are not published on public APIs; keep them simulated
-                if t_no.startswith("F-"):
-                    continue
 
                 try:
                     live_data = await live_tracker.fetch_train_telemetry(t_no, STATIONS)
@@ -71,7 +70,8 @@ class TelemetryEngine:
                         train["next_station_name"] = live_data.get("next_station_name")
                         train["journey_status"] = live_data.get("journey_status", "RUNNING")
                         train["origin_dep_time"] = live_data.get("origin_dep_time")
-                        train["assigned_platform"] = live_data.get("assigned_platform", train.get("assigned_platform", 1))
+                        if not train.get("manual_platform_override"):
+                            train["assigned_platform"] = live_data.get("assigned_platform", train.get("assigned_platform", 1))
                         
                         # Apply live stops and route
                         if live_data.get("stops"):
@@ -149,14 +149,14 @@ class TelemetryEngine:
                     train["confidence_score"] = prediction["confidence_score"]
                     train["delay_factors"] = prediction["delay_factors"]
 
-            elif t_no == "12723":  # AP Express simulation preset
+            elif t_no == "04414":  # Delhi - Aligarh MEMU
                 train["journey_status"] = "RUNNING"
                 prediction = eta_model.predict_delay_with_explanation(
-                    current_delay=train.get("current_delay", 14),
-                    headway_km=4.8,
-                    visibility_m=1200,
-                    junction_load=0.78,
-                    priority=2,
+                    current_delay=train.get("current_delay", 12),
+                    headway_km=6.8,
+                    visibility_m=3500,
+                    junction_load=0.68,
+                    priority=3,
                     dwell_deviation_min=2.5,
                     scheduled_arrival=train["scheduled_arrival"],
                 )
@@ -166,15 +166,15 @@ class TelemetryEngine:
                 train["expected_delay_range"] = prediction["expected_delay_range"]
                 train["confidence_score"] = prediction["confidence_score"]
                 train["delay_factors"] = prediction["delay_factors"]
-            elif t_no == "22436":  # Vande Bharat simulation preset
+            elif t_no == "04183":  # Tundla - Delhi MEMU
                 train["journey_status"] = "RUNNING"
                 prediction = eta_model.predict_delay_with_explanation(
-                    current_delay=train.get("current_delay", 2),
-                    headway_km=25.0,
-                    visibility_m=8000,
-                    junction_load=0.25,
-                    priority=1,
-                    dwell_deviation_min=0.0,
+                    current_delay=train.get("current_delay", 18),
+                    headway_km=5.2,
+                    visibility_m=4000,
+                    junction_load=0.74,
+                    priority=3,
+                    dwell_deviation_min=3.0,
                     scheduled_arrival=train["scheduled_arrival"],
                 )
                 train["data_source"] = "HYBRID_SIMULATION"
@@ -183,18 +183,38 @@ class TelemetryEngine:
                 train["expected_delay_range"] = prediction["expected_delay_range"]
                 train["confidence_score"] = prediction["confidence_score"]
                 train["delay_factors"] = prediction["delay_factors"]
-            elif t_no == "F-809":  # Freight simulation preset
+            elif t_no == "04419":  # Ghaziabad - New Delhi EMU Shuttle
                 train["journey_status"] = "RUNNING"
                 prediction = eta_model.predict_delay_with_explanation(
-                    current_delay=train.get("current_delay", 45),
-                    headway_km=15.0,
-                    visibility_m=2500,
-                    junction_load=0.85,
+                    current_delay=train.get("current_delay", 14),
+                    headway_km=4.5,
+                    visibility_m=5000,
+                    junction_load=0.82,
                     priority=3,
-                    dwell_deviation_min=5.0,
+                    dwell_deviation_min=2.0,
                     scheduled_arrival=train["scheduled_arrival"],
                 )
                 train["data_source"] = "HYBRID_SIMULATION"
+                train["dynamic_eta"] = prediction["dynamic_eta"]
+                train["predicted_delay_min"] = prediction["predicted_delay_min"]
+                train["expected_delay_range"] = prediction["expected_delay_range"]
+                train["confidence_score"] = prediction["confidence_score"]
+                train["delay_factors"] = prediction["delay_factors"]
+            elif t_no == "07091":  # Guntur - Delhi Passenger Special (Halfway in transit)
+                train["journey_status"] = "RUNNING"
+                prediction = eta_model.predict_delay_with_explanation(
+                    current_delay=train.get("current_delay", 11),
+                    headway_km=7.5,
+                    visibility_m=5000,
+                    junction_load=0.58,
+                    priority=3,
+                    dwell_deviation_min=2.0,
+                    scheduled_arrival=train["scheduled_arrival"],
+                )
+                train["data_source"] = "HYBRID_SIMULATION"
+                train["segment_progress"] = 0.50
+                train["journey_progress_pct"] = 50
+                train["status_note"] = "Halfway through journey (Midway between Bhopal and Jhansi)"
                 train["dynamic_eta"] = prediction["dynamic_eta"]
                 train["predicted_delay_min"] = prediction["predicted_delay_min"]
                 train["expected_delay_range"] = prediction["expected_delay_range"]
@@ -204,11 +224,11 @@ class TelemetryEngine:
                 train["journey_status"] = "RUNNING"
                 prediction = eta_model.predict_delay_with_explanation(
                     current_delay=train.get("current_delay", train.get("default_delay", 8)),
-                    headway_km=14.0,
+                    headway_km=8.0,
                     visibility_m=5000,
-                    junction_load=0.50,
-                    priority=train.get("priority", 2),
-                    dwell_deviation_min=1.0,
+                    junction_load=0.55,
+                    priority=3,
+                    dwell_deviation_min=2.0,
                     scheduled_arrival=train["scheduled_arrival"],
                 )
                 train["data_source"] = "HYBRID_SIMULATION"
@@ -217,6 +237,27 @@ class TelemetryEngine:
                 train["expected_delay_range"] = prediction["expected_delay_range"]
                 train["confidence_score"] = prediction["confidence_score"]
                 train["delay_factors"] = prediction["delay_factors"]
+
+            # Compute station-specific dynamic ETA for each stop along the route
+            delay_mins = train.get("predicted_delay_min", 0)
+            for stop in train.get("stops", []):
+                sch = stop.get("sch_arr") or stop.get("sch_dep")
+                if sch and sch != "--:--":
+                    try:
+                        bt = datetime.strptime(sch, "%H:%M")
+                        stop["dynamic_eta"] = (bt + timedelta(minutes=delay_mins)).strftime("%H:%M")
+                    except Exception:
+                        stop["dynamic_eta"] = sch
+                else:
+                    stop["dynamic_eta"] = sch or "--:--"
+
+            # Identify the approaching halt to populate station-level ETA fields
+            appr_stop = next((s for s in train.get("stops", []) if s.get("status") in ["Approaching", "Origin", "Arrived"]), None)
+            if appr_stop:
+                train["approaching_station_code"] = appr_stop.get("code")
+                train["approaching_station_name"] = appr_stop.get("name")
+                train["approaching_scheduled_arrival"] = appr_stop.get("sch_arr")
+                train["approaching_dynamic_eta"] = appr_stop.get("dynamic_eta")
 
     async def register_client(self, websocket: WebSocket):
         await websocket.accept()
@@ -333,7 +374,8 @@ class TelemetryEngine:
     def update_train_platform(self, train_no: str, new_platform: int):
         for t in self.active_trains:
             if t["train_no"] == train_no:
-                t["assigned_platform"] = new_platform
+                t["assigned_platform"] = int(new_platform)
+                t["manual_platform_override"] = True
                 t["platform_status"] = "CLEAR"
                 return True
         return False

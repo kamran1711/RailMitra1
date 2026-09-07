@@ -66,25 +66,43 @@ export default function PnrModal({ isOpen, onClose }) {
           </div>
 
           {/* Quick Demo PNR Pills */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500 font-medium">Try Sample PNR:</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-slate-500 font-medium mr-1">Sample PNRs:</span>
+            <button
+              onClick={() => {
+                setPnrNumber("7492018345");
+                handleSearch("7492018345");
+              }}
+              className="px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-700 text-cyan-300 hover:bg-cyan-900 font-mono text-[11px] cursor-pointer"
+            >
+              7492018345 (07091 GNT → NDLS Halfway)
+            </button>
+            <button
+              onClick={() => {
+                setPnrNumber("6241908531");
+                handleSearch("6241908531");
+              }}
+              className="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 hover:bg-emerald-900 font-mono text-[11px] cursor-pointer"
+            >
+              6241908531 (Guntur → BZA)
+            </button>
+            <button
+              onClick={() => {
+                setPnrNumber("8391024567");
+                handleSearch("8391024567");
+              }}
+              className="px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 hover:bg-amber-900 font-mono text-[11px] cursor-pointer"
+            >
+              8391024567 (Guntur Passengers)
+            </button>
             <button
               onClick={() => {
                 setPnrNumber("4528916320");
                 handleSearch("4528916320");
               }}
-              className="px-2 py-0.5 rounded bg-slate-800 text-cyan-400 hover:bg-slate-700 font-mono text-[11px]"
+              className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-400 hover:bg-slate-700 font-mono text-[11px] cursor-pointer"
             >
-              4528916320 (AP Exp)
-            </button>
-            <button
-              onClick={() => {
-                setPnrNumber("2819405671");
-                handleSearch("2819405671");
-              }}
-              className="px-2 py-0.5 rounded bg-slate-800 text-purple-400 hover:bg-slate-700 font-mono text-[11px]"
-            >
-              2819405671 (Vande Bharat)
+              4528916320 (Delhi MEMU)
             </button>
           </div>
 

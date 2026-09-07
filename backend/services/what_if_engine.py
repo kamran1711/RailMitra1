@@ -42,7 +42,7 @@ class WhatIfEngine:
             }
 
         elif action_type == "LOOP_LINE_PRECEDENCE":
-            # Holding freight train F-809 in loop line to let Vande Bharat pass at 130 km/h
+            # Regulating preceding express train 12417 in loop line to let Vande Bharat / Shatabdi pass at MPS
             delay_reduction_min = 18.0
             passengers_affected = 1120
             passenger_minutes_saved = int(delay_reduction_min * passengers_affected)
@@ -51,7 +51,7 @@ class WhatIfEngine:
             return {
                 "train_no": train_no,
                 "action_type": action_type,
-                "description": f"Divert Preceding Freight to Loop Line 3 at Aligarh; grant clear mainline to Train {train_no}",
+                "description": f"Regulate Preceding Express to Loop Line 3 at Aligarh; grant clear mainline to Train {train_no}",
                 "delay_minutes_saved": round(delay_reduction_min, 1),
                 "passenger_minutes_saved": passenger_minutes_saved,
                 "section_throughput_delta_pct": section_throughput_delta,
@@ -59,7 +59,7 @@ class WhatIfEngine:
                 "feasibility_score": 99.0,
                 "junction_line_clearance": "FULL_MPS_CLEAR",
                 "recommended_order": (
-                    f"Divert Freight F-809 to Aligarh Loop. Grant Absolute Block Clear for Train {train_no}."
+                    f"Divert Train 12417 to Aligarh Loop. Grant Absolute Block Clear for Train {train_no}."
                 ),
             }
 

@@ -89,9 +89,9 @@ export default function ControllerDashboard({
 
   // Live Signals Simulation
   const sampleSignals = [
-    { id: "SIG-NDLS-01", aspect: "RED", name: "Home Signal 1 (NDLS)", train: "12723 (AP Exp)" },
+    { id: "SIG-NDLS-01", aspect: "RED", name: "Home Signal 1 (NDLS)", train: "04419 (EMU Shuttle)" },
     { id: "SIG-NDLS-02", aspect: "GREEN", name: "Loop Line Starter", train: "Clear" },
-    { id: "SIG-GZB-04", aspect: "YELLOW", name: "Advance Starter (GZB)", train: "F-809 (Freight)" },
+    { id: "SIG-GZB-04", aspect: "YELLOW", name: "Advance Starter (GZB)", train: "04414 (MEMU Pass)" },
     { id: "SIG-ALJN-02", aspect: "DOUBLE_YELLOW", name: "Aligarh Outer Caution", train: "Clear" },
     { id: "SIG-CNB-01", aspect: "GREEN", name: "Kanpur Central Entry", train: "Clear" },
   ];
@@ -250,17 +250,17 @@ export default function ControllerDashboard({
             <div className="bg-slate-950 p-3 rounded-xl border border-rose-900/40 text-xs space-y-2">
               <div className="flex items-center justify-between text-slate-300">
                 <span>
-                  <strong>Train 12723 (AP Exp)</strong> vs <strong>Train 12417 (Prayagraj Exp)</strong>
+                  <strong>Train 04419 (EMU Shuttle)</strong> vs <strong>Train 64521 (MEMU Pass)</strong>
                 </span>
                 <span className="text-rose-400 font-bold">Collision at Platform 3</span>
               </div>
               <p className="text-slate-400 text-[11px]">
-                Both trains have overlapping arrival windows (06:44 vs 06:48). Safety headway buffer violated by 14
+                Both passenger trains have overlapping arrival windows (08:34 vs 08:40). Safety headway buffer violated by 14
                 minutes.
               </p>
               <div className="p-2 rounded bg-cyan-950/40 border border-cyan-800/60 text-cyan-200 text-[11px] flex items-center justify-between">
                 <span>
-                  💡 <strong>AI Recommendation:</strong> Reassign Train 12723 to open <strong>Platform 4</strong>.
+                  💡 <strong>AI Recommendation:</strong> Reassign Train 04419 to open <strong>Platform 4</strong>.
                 </span>
               </div>
             </div>

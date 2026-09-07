@@ -39,6 +39,8 @@ class TrackNetwork:
             ("AGC", "GWL", 118.0, 130),
             ("GWL", "VGLJ", 98.0, 130),
             ("VGLJ", "BPL", 292.0, 130),
+            ("BPL", "BZA", 840.0, 120),
+            ("BZA", "GNT", 32.0, 90),
         ]
 
         # Bidirectional graph for both UP and DOWN train dispatching

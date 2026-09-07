@@ -1,7 +1,19 @@
-import React, { useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, Tooltip } from "react-leaflet";
+import React, { useMemo, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Gauge, Clock, AlertCircle, Navigation } from "lucide-react";
+
+function MapFlyTo({ selectedTrain }) {
+  const map = useMap();
+  useEffect(() => {
+    if (selectedTrain?.coordinates?.lat && selectedTrain?.coordinates?.lng) {
+      map.flyTo([selectedTrain.coordinates.lat, selectedTrain.coordinates.lng], Math.max(map.getZoom(), 7), {
+        duration: 0.8,
+      });
+    }
+  }, [selectedTrain, map]);
+  return null;
+}
 
 // Fix Leaflet's default marker asset URLs
 delete L.Icon.Default.prototype._getIconUrl;
@@ -13,10 +25,9 @@ L.Icon.Default.mergeOptions({
 
 // Create custom animated SVG icons for trains with directional bearing indicator
 const createTrainIcon = (type, isDelayed, isSelected, bearing = 0) => {
-  let color = "#06b6d4"; // default cyan
-  if (type === "Heavy Freight") color = "#eab308";
-  else if (type === "Semi High Speed") color = "#8b5cf6";
-  else if (type === "Rajdhani Express") color = "#ef4444";
+  let color = "#06b6d4"; // default cyan for MEMU Passenger
+  if (type === "Suburban EMU") color = "#8b5cf6";
+  else if (type === "Ordinary Passenger") color = "#10b981";
   else if (isDelayed) color = "#f97316";
 
   const borderColor = isSelected ? "#ffffff" : color;
@@ -99,21 +110,27 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
     [23.2673, 77.4126], // BPL
   ];
 
+  const andhraBranch = [
+    [23.2673, 77.4126], // BPL
+    [16.5193, 80.6231], // BZA
+    [16.2997, 80.4573], // GNT
+  ];
+
   return (
     <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
       {/* Map Control HUD Overlay */}
       <div className="absolute top-3 left-3 z-[1000] bg-slate-950/85 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 flex items-center gap-3 text-xs">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
-          <span className="text-slate-300">Express</span>
+          <span className="text-slate-300">MEMU Passenger</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-          <span className="text-slate-300">Vande Bharat</span>
+          <span className="text-slate-300">Suburban EMU</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
-          <span className="text-slate-300">Freight</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <span className="text-slate-300">Ordinary Passenger</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
@@ -121,10 +138,18 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
         </div>
       </div>
 
-      <MapContainer center={defaultCenter} zoom={7} scrollWheelZoom={true} style={{ width: "100%", height: "100%" }}>
+      <MapContainer
+        center={defaultCenter}
+        zoom={7}
+        scrollWheelZoom={true}
+        attributionControl={false}
+        style={{ width: "100%", height: "100%" }}
+      >
+        <MapFlyTo selectedTrain={selectedTrain} />
+
         {/* CartoDB Dark Matter Tiles */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a> | RailFlow AI Telemetry'
+          attribution=""
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           subdomains="abcd"
           maxZoom={19}
@@ -138,6 +163,10 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
         <Polyline
           positions={southernBranch}
           pathOptions={{ color: "#0284c7", weight: 2.5, opacity: 0.6, dashArray: "4, 6" }}
+        />
+        <Polyline
+          positions={andhraBranch}
+          pathOptions={{ color: "#0ea5e9", weight: 2.5, opacity: 0.6, dashArray: "4, 6" }}
         />
 
         {/* Stations */}
@@ -216,7 +245,13 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
                     </div>
                   </div>
 
-                  <div className="bg-slate-900/90 p-1.5 rounded text-[10px] text-slate-300 space-y-0.5">
+                  <div className="bg-slate-900/90 p-1.5 rounded text-[10px] text-slate-300 space-y-1">
+                    {train.status_note && (
+                      <div className="bg-cyan-950/60 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/80 font-bold flex items-center gap-1">
+                        <span>📍</span>
+                        <span>{train.status_note}</span>
+                      </div>
+                    )}
                     <div>Section: <span className="font-mono text-cyan-300">{train.current_section}</span></div>
                     <div className="flex justify-between">
                       <span>Platform: <strong className="text-white">{train.assigned_platform}</strong></span>

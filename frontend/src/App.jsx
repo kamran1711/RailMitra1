@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Navbar from "./components/Navbar";
 import PassengerDashboard from "./components/passenger/PassengerDashboard";
 import ControllerDashboard from "./components/controller/ControllerDashboard";
+import StationMasterDashboard from "./components/station_master/StationMasterDashboard";
 import RailMap from "./components/map/RailMap";
 import PnrModal from "./components/pnr/PnrModal";
 import { Train, Layers, Shield, Radio, Activity, Eye, AlertCircle } from "lucide-react";
@@ -181,6 +182,14 @@ export default function App() {
                 onSelectTrain={setSelectedTrain}
                 stations={stations}
                 onOpenPnrModal={() => setIsPnrOpen(true)}
+              />
+            ) : currentRole === "station_master" ? (
+              <StationMasterDashboard
+                trains={trains}
+                stations={stations}
+                conflicts={conflicts}
+                selectedTrain={selectedTrain}
+                onSelectTrain={setSelectedTrain}
               />
             ) : (
               <ControllerDashboard
