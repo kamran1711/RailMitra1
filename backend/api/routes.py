@@ -1,9 +1,11 @@
 """
-FastAPI REST Routes for RailFlow AI
+FastAPI REST Routes for Rail Mitra
 Exposes search, live telemetry, explainable delay, PNR inquiry, and what-if simulation.
 """
 
+import os
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from backend.data.railway_data import STATIONS, PNR_DATABASE
@@ -42,7 +44,7 @@ class PredictCustomETARequest(BaseModel):
 
 @router.get("/health")
 def health():
-    return {"status": "online", "system": "RailFlow AI Core", "version": "1.0.0"}
+    return {"status": "online", "system": "Rail Mitra Core", "version": "1.0.0"}
 
 
 @router.get("/stations")
@@ -160,6 +162,12 @@ def predict_custom_eta(req: PredictCustomETARequest):
     )
 
 
+@router.get("/ai/model-metrics")
+def get_model_validation_metrics():
+    """Returns backtested validation metrics (MAE, RMSE, R², accuracy within ±3m/±5m tolerances) on held-out test data."""
+    return eta_model.get_validation_metrics()
+
+
 class SetApiKeyRequest(BaseModel):
     api_key: str
 
@@ -199,4 +207,47 @@ async def trigger_manual_sync(train_no: Optional[str] = None):
         "synced_trains": synced,
         "tracker_metrics": live_tracker.get_status(),
     }
+
+
+@router.get("/download/dossier")
+def download_dossier():
+    """Download the Judges Presentation Dossier text file."""
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    dossier_path = os.path.join(root_dir, "JUDGES_PRESENTATION_DOSSIER.txt")
+    if os.path.exists(dossier_path):
+        return FileResponse(
+            dossier_path,
+            media_type="text/plain; charset=utf-8",
+            filename="JUDGES_PRESENTATION_DOSSIER.txt"
+        )
+    raise HTTPException(status_code=404, detail="Dossier file not found")
+
+
+@router.get("/download/math-guide")
+def download_math_guide():
+    """Download the Machine Learning Mathematics & Architecture Guide text file."""
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    guide_path = os.path.join(root_dir, "ML_FORMULAS_AND_SYSTEM_GUIDE.txt")
+    if os.path.exists(guide_path):
+        return FileResponse(
+            guide_path,
+            media_type="text/plain; charset=utf-8",
+            filename="ML_FORMULAS_AND_SYSTEM_GUIDE.txt"
+        )
+    raise HTTPException(status_code=404, detail="ML formulas guide file not found")
+
+
+@router.get("/download/historical-data")
+def download_historical_data():
+    """Download the authentic Historical Train Delay CSV dataset."""
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    csv_path = os.path.join(root_dir, "backend", "data", "historical_train_delays.csv")
+    if os.path.exists(csv_path):
+        return FileResponse(
+            csv_path,
+            media_type="text/csv",
+            filename="historical_train_delays.csv"
+        )
+    raise HTTPException(status_code=404, detail="Historical dataset CSV not found")
+
 

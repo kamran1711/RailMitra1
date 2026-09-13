@@ -17,17 +17,17 @@ async def lifespan(app: FastAPI):
     simulation_task = asyncio.create_task(telemetry_engine.run_simulation_loop())
     # 2. Start periodic 60s external RailRadar API synchronization loop
     sync_task = asyncio.create_task(telemetry_engine.run_external_sync_loop())
-    print("[RailFlow AI] Telemetry engine and external live sync loop started.")
+    print("[Rail Mitra] Telemetry engine and external live sync loop started.")
     yield
     telemetry_engine.running = False
     simulation_task.cancel()
     sync_task.cancel()
-    print("[RailFlow AI] Server shutdown completed.")
+    print("[Rail Mitra] Server shutdown completed.")
 
 
 app = FastAPI(
-    title="RailFlow AI Core",
-    description="Dynamic ETA Prediction & Railway Traffic Intelligence System (SIH 2026)",
+    title="Rail Mitra Core",
+    description="Dynamic ETA Prediction & Railway Traffic Intelligence System",
     version="1.0.0",
     lifespan=lifespan,
 )

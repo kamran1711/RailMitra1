@@ -1,5 +1,5 @@
 #!/bin/bash
-# RailFlow AI - Start Script
+# Rail Mitra - Start Script
 
 set -e
 
@@ -7,7 +7,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
 echo "=========================================="
-echo " Starting RailFlow AI System"
+echo " Starting Rail Mitra System"
 echo "=========================================="
 
 # Check Python environment
@@ -19,7 +19,7 @@ fi
 # Function to kill child processes on exit
 cleanup() {
     echo ""
-    echo "Shutting down RailFlow AI services..."
+    echo "Shutting down Rail Mitra services..."
     kill $(jobs -p) 2>/dev/null || true
     exit
 }

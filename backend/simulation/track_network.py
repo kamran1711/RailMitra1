@@ -41,6 +41,8 @@ class TrackNetwork:
             ("VGLJ", "BPL", 292.0, 130),
             ("BPL", "BZA", 840.0, 120),
             ("BZA", "GNT", 32.0, 90),
+            ("BZA", "RJY", 150.0, 110),
+            ("RJY", "VSKP", 200.0, 110),
         ]
 
         # Bidirectional graph for both UP and DOWN train dispatching

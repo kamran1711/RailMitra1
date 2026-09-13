@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Gauge, Clock, AlertCircle, Navigation } from "lucide-react";
@@ -92,6 +92,9 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
   // Center map around Delhi-Kanpur corridor
   const defaultCenter = [27.8, 78.4];
 
+  // Keyless tile provider mode: 'osm_dark' (OpenStreetMap with CSS dark filter) or 'carto_dark' (CARTO Dark Matter public proxy)
+  const [tileProvider, setTileProvider] = useState("osm_dark");
+
   // Corridor line geometry
   const corridorLine = [
     [28.6415, 77.2194], // NDLS
@@ -116,6 +119,13 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
     [16.2997, 80.4573], // GNT
   ];
 
+  const coastalAndhraBranch = [
+    [16.2997, 80.4573], // GNT (Guntur)
+    [16.5193, 80.6231], // BZA (Vijayawada)
+    [16.9891, 81.7770], // RJY (Rajahmundry)
+    [17.7215, 83.2870], // VSKP (Visakhapatnam)
+  ];
+
   return (
     <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
       {/* Map Control HUD Overlay */}
@@ -138,6 +148,33 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
         </div>
       </div>
 
+      {/* Tile Provider Switcher (Keyless & Demo Safe) */}
+      <div className="absolute top-3 right-3 z-[1000] bg-slate-950/85 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-800 flex items-center gap-1.5 text-xs shadow-lg">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">Tiles:</span>
+        <button
+          onClick={() => setTileProvider("osm_dark")}
+          className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+            tileProvider === "osm_dark"
+              ? "bg-cyan-500 text-slate-950 shadow-sm"
+              : "text-slate-400 hover:text-white"
+          }`}
+          title="OpenStreetMap tiles with dark CSS filter (100% Free, No Key Ever)"
+        >
+          OSM Dark (Keyless)
+        </button>
+        <button
+          onClick={() => setTileProvider("carto_dark")}
+          className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+            tileProvider === "carto_dark"
+              ? "bg-cyan-500 text-slate-950 shadow-sm"
+              : "text-slate-400 hover:text-white"
+          }`}
+          title="CARTO Dark Matter free public proxy"
+        >
+          CARTO Dark
+        </button>
+      </div>
+
       <MapContainer
         center={defaultCenter}
         zoom={7}
@@ -147,13 +184,24 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
       >
         <MapFlyTo selectedTrain={selectedTrain} />
 
-        {/* CartoDB Dark Matter Tiles */}
-        <TileLayer
-          attribution=""
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={19}
-        />
+        {/* Keyless Dark Tile Layer (No API Key or Signup Required) */}
+        {tileProvider === "osm_dark" ? (
+          <TileLayer
+            key="osm_dark"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            className="map-tiles-dark"
+            maxZoom={19}
+          />
+        ) : (
+          <TileLayer
+            key="carto_dark"
+            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png"
+            subdomains="abcd"
+            maxZoom={19}
+          />
+        )}
 
         {/* Railway Mainline Corridors */}
         <Polyline
@@ -167,6 +215,10 @@ export default function RailMap({ trains = [], stations = [], selectedTrain, onS
         <Polyline
           positions={andhraBranch}
           pathOptions={{ color: "#0ea5e9", weight: 2.5, opacity: 0.6, dashArray: "4, 6" }}
+        />
+        <Polyline
+          positions={coastalAndhraBranch}
+          pathOptions={{ color: "#10b981", weight: 2.5, opacity: 0.7, dashArray: "4, 6" }}
         />
 
         {/* Stations */}

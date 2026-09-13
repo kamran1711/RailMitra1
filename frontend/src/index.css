@@ -45,6 +45,15 @@ body {
   display: none !important;
 }
 
+/* Dark CSS filter for keyless OpenStreetMap tiles (Demo-Safe, No API Key Ever) */
+.map-tiles-dark,
+.map-tiles-dark img,
+.leaflet-tile-pane .map-tiles-dark,
+.map-tiles-dark .leaflet-tile,
+.leaflet-layer.map-tiles-dark img {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(1.1) !important;
+}
+
 .leaflet-popup-content-wrapper {
   background: #0f172a !important;
   color: #f8fafc !important;

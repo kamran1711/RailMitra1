@@ -1,0 +1,10 @@
+{
+  "name": "rail-mitra",
+  "version": "1.0.0",
+  "description": "Rail Mitra - Dynamic ETA Prediction & Smart Railway Traffic Intelligence",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "./run.sh"
+  }
+}

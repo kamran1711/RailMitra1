@@ -70,12 +70,21 @@ export default function PnrModal({ isOpen, onClose }) {
             <span className="text-slate-500 font-medium mr-1">Sample PNRs:</span>
             <button
               onClick={() => {
+                setPnrNumber("4528190367");
+                handleSearch("4528190367");
+              }}
+              className="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-700 text-emerald-300 hover:bg-emerald-900 font-mono text-[11px] cursor-pointer"
+            >
+              4528190367 (17239 Simhadri GNT → VSKP)
+            </button>
+            <button
+              onClick={() => {
                 setPnrNumber("7492018345");
                 handleSearch("7492018345");
               }}
               className="px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-700 text-cyan-300 hover:bg-cyan-900 font-mono text-[11px] cursor-pointer"
             >
-              7492018345 (07091 GNT → NDLS Halfway)
+              7492018345 (07091 GNT → NDLS En Route)
             </button>
             <button
               onClick={() => {

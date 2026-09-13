@@ -56,7 +56,7 @@ export default function App() {
 
       ws.onopen = () => {
         setIsConnected(true);
-        console.log("[RailFlow AI] WebSocket live feed connected.");
+        console.log("[Rail Mitra] WebSocket live feed connected.");
       };
 
       ws.onmessage = (event) => {
@@ -83,7 +83,7 @@ export default function App() {
 
       ws.onclose = () => {
         setIsConnected(false);
-        console.log("[RailFlow AI] WebSocket disconnected, retrying in 3s...");
+        console.log("[Rail Mitra] WebSocket disconnected, retrying in 3s...");
         reconnectTimeout = setTimeout(connectWebSocket, 3000);
       };
 
@@ -211,7 +211,7 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-3 px-4 text-center text-xs text-slate-500">
         <p>
-          RailFlow AI • Smart Railway Traffic Management & Dynamic ETA Prediction • Built for Smart India Hackathon (SIH 2026 Problem Statement 26028)
+          Rail Mitra • Smart Railway Traffic Management & Dynamic ETA Prediction System
         </p>
       </footer>
     </div>
