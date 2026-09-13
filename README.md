@@ -34,7 +34,7 @@
 
 ---
 
-![Rail Mitra Hero Dashboard](./docs/images/hero_dashboard.jpg)
+![Rail Mitra Live Tracking & Dynamic ETA Dashboard](./docs/images/real_passenger_dashboard.png)
 
 </div>
 

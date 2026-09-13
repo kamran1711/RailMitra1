@@ -6,5 +6,8 @@
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "start": "./run.sh"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }
